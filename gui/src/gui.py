@@ -1,3 +1,4 @@
+import time
 import sys
 import serial
 from PyQt5.QtWidgets import QApplication,QWidget,QLabel,QComboBox, QPushButton
@@ -9,14 +10,10 @@ vnch_list = ["Ch1", "Ch2", "Ch3", "Ch4"]
 vncan_mapping = ["N/A", "N/A", "N/A", "N/A"]
 
 class Raspberry():
-    timeout = 100;
-
+    timeout = 1000;
     def __init__(self):
-        ports = serial.tools.list_ports.comports()
-
-
         try:
-            self.serial = serial.Serial('/dev/ttyACM0', 115200, timeout=self.timeout)
+            self.serial = serial.Serial('/dev/ttyACM0', 9600, timeout=self.timeout)
         except serial.SerialException as e:
             print("The communication between host and target could not be established")
             sys.exit(1)
@@ -24,10 +21,11 @@ class Raspberry():
 
     def send(self, text: str):
         line = '%s\r\f' % text
+        print(line)
         self.serial.write(line.encode('utf-8'))
 
     def receive(self) -> str:
-        line = self.serial.read_until(self.TERMINATOR)
+        line = self.serial.readline()
         return line.decode('UTF8').strip()
 
     def close(self):
@@ -35,12 +33,15 @@ class Raspberry():
 
     def readChannelStatus(self):
         global vncan_mapping
-        for i in range(1, len(vnch_list)):
+        self.send("read_all")
+        self.receive()
+        for i in range(0, len(vnch_list)):
             vncan_mapping[i] = self.receive()
 
-    def transmitData(channel: str, can: str):
-        self.send(self, channel)
-        self.send(self, can)
+    def transmitData(self, channel: str, can: str):
+        self.send("Chn")
+        self.send(channel)
+        self.send(can)
 
 class App(QWidget):
     def __init__(self):
@@ -50,16 +51,8 @@ class App(QWidget):
         self.top=10
         self.width=480
         self.height=320
+        self.firmware = Raspberry()
         self.initUI()
-
-    def triggerTransmission(self):
-        self.transmissionFlag = True
-
-    def endTransmission(self):
-        self.transmissionFlag = False
-
-    def getTransmissionFlag(self) -> bool:
-        return self.transmissionFlag
 
     def getChn1Data(self) -> str:
         return self.chn1.currentText()
@@ -72,6 +65,16 @@ class App(QWidget):
 
     def getChn4Data(self) -> str:
         return self.chn4.currentText()
+    
+    def triggerTransmission(self):
+        chn1_data = self.getChn1Data()
+        chn2_data = self.getChn2Data()
+        chn3_data = self.getChn3Data()
+        chn4_data = self.getChn4Data()
+        self.firmware.transmitData("0", chn1_data)
+        self.firmware.transmitData("1", chn2_data)
+        self.firmware.transmitData("2", chn3_data)
+        self.firmware.transmitData("3", chn4_data)
 
     def initUI(self):
         self.chn1 = QComboBox(self)
@@ -104,6 +107,10 @@ class App(QWidget):
         self.chn4_label.setGeometry(200, 200, 120, 30)
         self.setWindowTitle(self.title)
         self.setGeometry(self.left,self.top,self.width,self.height)
+        print(vncan_mapping[0])
+        print(vncan_mapping[1])
+        print(vncan_mapping[2])
+        print(vncan_mapping[3])
         self.chn1.setCurrentIndex(canch_list.index(vncan_mapping[0]))
         self.chn2.setCurrentIndex(canch_list.index(vncan_mapping[1]))
         self.chn3.setCurrentIndex(canch_list.index(vncan_mapping[2]))
@@ -111,18 +118,6 @@ class App(QWidget):
         self.show()
 
 if __name__=='__main__':
-    firmware = Raspberry()
     app=QApplication(sys.argv)
     ex=App()
-    while(1):
-        if(ex.getTransmissionFlag()):
-            chn1_data = ex.getChn1Data()
-            chn2_data = ex.getChn2Data()
-            chn3_data = ex.getChn3Data()
-            chn4_data = ex.getChn4Data()
-            firmware.transmitData("Channel1", chn1_data)
-            firmware.transmitData("Channel2", chn2_data)
-            firmware.transmitData("Channel3", chn3_data)
-            firmware.transmitData("Channel4", chn4_data)
-            ex.endTransmission()
     sys.exit(app.exec())
