@@ -1,3 +1,4 @@
+import glob
 import time
 import sys
 import serial
@@ -9,11 +10,67 @@ canch_list = ["N/A", "CAN1", "CAN2", "CAN3", "CAN4", "CAN5", "CAN6", "CAN7", "CA
 vnch_list = ["Ch1", "Ch2", "Ch3", "Ch4"]
 vncan_mapping = ["N/A", "N/A", "N/A", "N/A"]
 
+def serial_ports():
+    """ Lists serial port names
+
+        :raises EnvironmentError:
+            On unsupported or unknown platforms
+        :returns:
+            A list of the serial ports available on the system
+    """
+    if sys.platform.startswith('win'):
+        ports = ['COM%s' % (i + 1) for i in range(256)]
+    elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+        # this excludes your current terminal "/dev/tty"
+        ports = glob.glob('/dev/tty[A-Za-z]*')
+    elif sys.platform.startswith('darwin'):
+        ports = glob.glob('/dev/tty.*')
+    else:
+        raise EnvironmentError('Unsupported platform')
+
+    result = []
+    for port in ports:
+        try:
+            s = serial.Serial(port)
+            s.close()
+            result.append(port)
+        except (OSError, serial.SerialException):
+            pass
+    return result
+
+com_list = serial_ports() 
+com_selected = ""
+
+class SelectSerial(QWidget):
+
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle('Select Serial')
+        self.left=10
+        self.top=10
+        self.width=480
+        self.height=240
+
+        self.com = QComboBox(self)
+        self.btn = QPushButton('Configure', self)
+        self.btn.clicked.connect(self.selectCom)
+        self.com.setGeometry(50, 50, 240, 30)
+        self.btn.setGeometry(50, 100, 120, 30)
+        self.com.addItems(com_list)
+        self.com.setEditable(True)
+        self.show()
+
+    def selectCom(self):
+        global com_selected
+        com_selected = self.com.currentText()
+        self.close()
+
 class Raspberry():
     timeout = 1000;
     def __init__(self):
+        global com_selected
         try:
-            self.serial = serial.Serial('/dev/ttyACM0', 9600, timeout=self.timeout)
+            self.serial = serial.Serial(com_selected, 9600, timeout=self.timeout)
         except serial.SerialException as e:
             print("The communication between host and target could not be established")
             sys.exit(1)
@@ -21,7 +78,6 @@ class Raspberry():
 
     def send(self, text: str):
         line = '%s\r\f' % text
-        print(line)
         self.serial.write(line.encode('utf-8'))
 
     def receive(self) -> str:
@@ -107,10 +163,6 @@ class App(QWidget):
         self.chn4_label.setGeometry(200, 200, 120, 30)
         self.setWindowTitle(self.title)
         self.setGeometry(self.left,self.top,self.width,self.height)
-        print(vncan_mapping[0])
-        print(vncan_mapping[1])
-        print(vncan_mapping[2])
-        print(vncan_mapping[3])
         self.chn1.setCurrentIndex(canch_list.index(vncan_mapping[0]))
         self.chn2.setCurrentIndex(canch_list.index(vncan_mapping[1]))
         self.chn3.setCurrentIndex(canch_list.index(vncan_mapping[2]))
@@ -118,6 +170,8 @@ class App(QWidget):
         self.show()
 
 if __name__=='__main__':
-    app=QApplication(sys.argv)
-    ex=App()
+    app = QApplication(sys.argv)
+    ser = SelectSerial()
+    app.exec()
+    ex = App()
     sys.exit(app.exec())
