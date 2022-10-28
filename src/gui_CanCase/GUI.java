@@ -12,6 +12,8 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JToggleButton;
 import java.awt.Color;
+import javax.swing.JButton;
+import java.awt.SystemColor;
 
 public class GUI {
 
@@ -24,8 +26,10 @@ public class GUI {
 	public JComboBox cBox_Ch2;
 	public JComboBox cBox_Ch3;
 	public JComboBox cBox_Ch4;
+	public JComboBox portList;
 	public JToggleButton button_SetValues;
-
+	public JToggleButton button_Lauterbach;
+	public JButton connectButton;
 
 	public GUI() {
 		initialize();
@@ -35,7 +39,7 @@ public class GUI {
 	private void initialize() {
 		frame = new JFrame();
 		frame.setAutoRequestFocus(false);
-		frame.setBounds(100, 100, 555, 259);
+		frame.setBounds(100, 100, 555, 267);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.getContentPane().setLayout(null);
 		
@@ -83,19 +87,29 @@ public class GUI {
 		cBox_Ch4.setBounds(452, 63, 76, 25);
 		frame.getContentPane().add(cBox_Ch4);
 		
-		JToggleButton button_Lauterbach = new JToggleButton("Lauterbach");
+		button_Lauterbach = new JToggleButton("Lauterbach");
 		button_Lauterbach.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		button_Lauterbach.setBackground(new Color(60, 179, 113));
-		button_Lauterbach.setBounds(10, 133, 154, 65);
+		button_Lauterbach.setBackground(SystemColor.inactiveCaption);
+		button_Lauterbach.setBounds(374, 141, 154, 65);
 		frame.getContentPane().add(button_Lauterbach);
 		
 		button_SetValues = new JToggleButton("Set Can Channels");
-		button_SetValues.setFocusable(false);
+		button_SetValues.setMultiClickThreshhold(2L);
 		button_SetValues.setSelected(true);
 		button_SetValues.setFont(new Font("Tahoma", Font.PLAIN, 15));
-		button_SetValues.setBackground(new Color(60, 179, 113));
-		button_SetValues.setBounds(10, 22, 154, 65);
+		button_SetValues.setBackground(SystemColor.activeCaption);
+		button_SetValues.setBounds(201, 141, 154, 65);
 		frame.getContentPane().add(button_SetValues);
+		
+		portList = new JComboBox();
+		portList.setFont(new Font("Tahoma", Font.BOLD, 15));
+		portList.setBounds(34, 94, 113, 36);
+		frame.getContentPane().add(portList);
+		
+		connectButton = new JButton("Connect");
+		connectButton.setFont(new Font("Tahoma", Font.PLAIN, 17));
+		connectButton.setBounds(10, 15, 159, 68);
+		frame.getContentPane().add(connectButton);
 	}
 	public static void infoBox(String infoMessage, String titleBar)
     {
